@@ -1,17 +1,17 @@
 // unlit, vertex colour, alpha blended
 // cull off
 
-Shader "tk2d/BlendVertexColor" 
+Shader "FadeableVertexColor" 
 {
 	Properties 
 	{
 		_MainTex ("Base (RGB) Trans (A)", 2D) = "white" {}
+		_Amount ("Alpha val", Range (-1,0)) = 0
 	}
-	
 	SubShader
 	{
 		Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Opaque"}
-		ZWrite Off Lighting Off Cull Off Fog { Mode Off } Blend SrcAlpha OneMinusSrcAlpha
+		ZWrite Off  Lighting Off Cull Off Fog { Mode Off } Blend SrcAlpha One
 		LOD 110
 		
 		Pass 
@@ -24,7 +24,8 @@ Shader "tk2d/BlendVertexColor"
 
 			sampler2D _MainTex;
 			float4 _MainTex_ST;
-
+			float _Amount;
+			
 			struct vin_vct 
 			{
 				float4 vertex : POSITION;
@@ -51,6 +52,7 @@ Shader "tk2d/BlendVertexColor"
 			fixed4 frag_mult(v2f_vct i) : COLOR
 			{
 				fixed4 col = tex2D(_MainTex, i.texcoord) * i.color;
+				col.a = i.color.a + _Amount;
 				return col;
 			}
 			

@@ -112,6 +112,7 @@ namespace MeshTools
             }
 
             MeshBuilderVO vo = new MeshBuilderVO();
+
             vo.Points = points;
             vo.CompletedHandler = completedHandler;
             vo.Thread = useThread;
@@ -120,7 +121,7 @@ namespace MeshTools
 			if(rebuild)
 			{
 				vo.ReusedShape = obj.GetComponent<Shape>();
-				vo.ReusedMesh = obj.GetComponent<MeshFilter>().mesh;
+				vo.ReusedMesh = obj.GetComponent<MeshFilter>().sharedMesh;
 			}
 
             if (material == null)
@@ -136,7 +137,6 @@ namespace MeshTools
                 vo.Mat = material;
             }
             _queue.Add(vo);
-
             if (!_running)
             {
                 ProcessQueue();
@@ -202,6 +202,7 @@ namespace MeshTools
             }
         
             _polygon = new Polygon(p2);
+			_polygon.Simplify();
             P2T.Triangulate(_polygon);
 
             ContinueCreatingShape();
@@ -271,6 +272,9 @@ namespace MeshTools
             ProcessQueue();
         }
 
+
+		public static Vector2 UVBounds;
+		public static bool UseBoundingBoxUVs = true;
         private void AssignBoundsToPolygon()
         {
             _lowerBound = new Vector2((float)_polygon.MinX, (float)_polygon.MinY);
@@ -278,22 +282,9 @@ namespace MeshTools
 
             _boundingBox = _upperBound - _lowerBound;
 
-            _uvBounds = _boundingBox;
-            if (_uvBounds.x > _uvBounds.y)
-            {
-                _uvBounds.y = _uvBounds.x;
-            } else
-            {
-                _uvBounds.x = _uvBounds.y;
-            }
-
-            if (_uvBounds.x > 4)
-            {
-                _uvBounds.x = _uvBounds.y = 4;
-            } else
-            {
-                _uvBounds.x = _uvBounds.y = 4;
-            }
+			_uvBounds.x = UVBounds.x;
+			_uvBounds.y = UVBounds.y;
+            
         }
 
         private void ConstructMeshData()
@@ -319,7 +310,10 @@ namespace MeshTools
 
                     Vector2 relativePoint = new Vector2(tp.Xf, tp.Yf) - _lowerBound;
                     relativePoint = transform.TransformPoint(relativePoint);
-                    _uvs [i] = new Vector2(relativePoint.x / _boundingBox.x, relativePoint.y / _boundingBox.y);
+
+					Vector2 b = UseBoundingBoxUVs ? _boundingBox : _uvBounds;
+
+                    _uvs [i] = new Vector2(relativePoint.x / b.x, relativePoint.y / b.y);
 
                     i++;
                     j++;
@@ -382,6 +376,8 @@ namespace MeshTools
 			_reusedMesh.Optimize();
 			_reusedMesh.RecalculateBounds();
 
+
+			_reusedShape.BuiltGameObject.GetComponent<MeshRenderer>().material = _material;
 			_reusedShape.BoundingBox = _boundingBox;
 			_reusedShape.UVBounds = _uvBounds;
 			_reusedShape.Area = _boundingBox.x * _boundingBox.y;
